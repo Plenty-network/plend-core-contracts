@@ -40,6 +40,7 @@ library ConfiguratorLogic {
     address indexed proxy,
     address indexed implementation
   );
+  event TokenProxy(address proxy);
 
   /**
    * @notice Initialize a reserve by creating and initializing aToken, stable debt token and variable debt token
@@ -51,54 +52,11 @@ library ConfiguratorLogic {
     IPool pool,
     ConfiguratorInputTypes.InitReserveInput calldata input
   ) public {
-    address aTokenProxyAddress = _initTokenWithProxy(
-      input.aTokenImpl,
-      abi.encodeWithSelector(
-        IInitializableAToken.initialize.selector,
-        pool,
-        input.treasury,
-        input.underlyingAsset,
-        input.incentivesController,
-        input.underlyingAssetDecimals,
-        input.aTokenName,
-        input.aTokenSymbol,
-        input.params
-      )
-    );
-
-    address stableDebtTokenProxyAddress = _initTokenWithProxy(
-      input.stableDebtTokenImpl,
-      abi.encodeWithSelector(
-        IInitializableDebtToken.initialize.selector,
-        pool,
-        input.underlyingAsset,
-        input.incentivesController,
-        input.underlyingAssetDecimals,
-        input.stableDebtTokenName,
-        input.stableDebtTokenSymbol,
-        input.params
-      )
-    );
-
-    address variableDebtTokenProxyAddress = _initTokenWithProxy(
-      input.variableDebtTokenImpl,
-      abi.encodeWithSelector(
-        IInitializableDebtToken.initialize.selector,
-        pool,
-        input.underlyingAsset,
-        input.incentivesController,
-        input.underlyingAssetDecimals,
-        input.variableDebtTokenName,
-        input.variableDebtTokenSymbol,
-        input.params
-      )
-    );
-
     pool.initReserve(
       input.underlyingAsset,
-      aTokenProxyAddress,
-      stableDebtTokenProxyAddress,
-      variableDebtTokenProxyAddress,
+      input.aTokenImpl, // already a proxy aTokenProxyAddress
+      input.stableDebtTokenImpl, // already a proxy  stableDebtTokenProxyAddress
+      input.variableDebtTokenImpl, // already a proxy variableDebtTokenProxyAddress
       input.interestRateStrategyAddress
     );
 
@@ -114,9 +72,9 @@ library ConfiguratorLogic {
 
     emit ReserveInitialized(
       input.underlyingAsset,
-      aTokenProxyAddress,
-      stableDebtTokenProxyAddress,
-      variableDebtTokenProxyAddress,
+      input.aTokenImpl,
+      input.stableDebtTokenImpl,
+      input.variableDebtTokenImpl,
       input.interestRateStrategyAddress
     );
   }
@@ -230,21 +188,67 @@ library ConfiguratorLogic {
 
   /**
    * @notice Creates a new proxy and initializes the implementation
+   * @dev Emits the `TokenProxy` event
+   * @param configId The id of config to use
+   * @param pool The Pool containing the reserve with the variable debt token
    * @param implementation The address of the implementation
-   * @param initParams The parameters that is passed to the implementation to initialize
-   * @return The address of initialized proxy
+   * @param input The parameters that is passed to the implementation to initialize
    */
-  function _initTokenWithProxy(
+  function initTokenWithProxy(
+    uint8 configId,
+    IPool pool,
     address implementation,
-    bytes memory initParams
-  ) internal returns (address) {
+    ConfiguratorInputTypes.InitReserveInput calldata input
+  ) public {
     InitializableImmutableAdminUpgradeabilityProxy proxy = new InitializableImmutableAdminUpgradeabilityProxy(
         address(this)
       );
+    if (configId == 0) {
+      proxy.initialize(
+        implementation,
+        abi.encodeWithSelector(
+          IInitializableAToken.initialize.selector,
+          pool,
+          input.treasury,
+          input.underlyingAsset,
+          input.incentivesController,
+          input.underlyingAssetDecimals,
+          input.aTokenName,
+          input.aTokenSymbol,
+          input.params
+        )
+      );
+    } else if (configId == 1) {
+      proxy.initialize(
+        implementation,
+        abi.encodeWithSelector(
+          IInitializableDebtToken.initialize.selector,
+          pool,
+          input.underlyingAsset,
+          input.incentivesController,
+          input.underlyingAssetDecimals,
+          input.stableDebtTokenName,
+          input.stableDebtTokenSymbol,
+          input.params
+        )
+      );
+    } else {
+      proxy.initialize(
+        implementation,
+        abi.encodeWithSelector(
+          IInitializableDebtToken.initialize.selector,
+          pool,
+          input.underlyingAsset,
+          input.incentivesController,
+          input.underlyingAssetDecimals,
+          input.variableDebtTokenName,
+          input.variableDebtTokenSymbol,
+          input.params
+        )
+      );
+    }
 
-    proxy.initialize(implementation, initParams);
-
-    return address(proxy);
+    emit TokenProxy(address(proxy));
   }
 
   /**

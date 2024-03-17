@@ -89,6 +89,15 @@ contract PoolConfigurator is VersionedInitializable, IPoolConfigurator {
   }
 
   /// @inheritdoc IPoolConfigurator
+  function initTokenProxy(
+    uint8 configId,
+    address implementation,
+    ConfiguratorInputTypes.InitReserveInput calldata input
+  ) external override onlyAssetListingOrPoolAdmins {
+    ConfiguratorLogic.initTokenWithProxy(configId, _pool, implementation, input);
+  }
+
+  /// @inheritdoc IPoolConfigurator
   function dropReserve(address asset) external override onlyPoolAdmin {
     _pool.dropReserve(asset);
     emit ReserveDropped(asset);

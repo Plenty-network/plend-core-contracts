@@ -266,6 +266,18 @@ interface IPoolConfigurator {
   function initReserves(ConfiguratorInputTypes.InitReserveInput[] calldata input) external;
 
   /**
+   * @notice Initializes proxy for token to use on reserves initialization.
+   * @param configId The id of config to use.
+   * @param implementation The address of token implementation.
+   * @param input The array of initialization parameters
+   */
+  function initTokenProxy(
+    uint8 configId,
+    address implementation,
+    ConfiguratorInputTypes.InitReserveInput calldata input
+  ) external;
+
+  /**
    * @dev Updates the aToken implementation for the reserve.
    * @param input The aToken update parameters
    */
