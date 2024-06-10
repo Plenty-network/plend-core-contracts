@@ -216,7 +216,9 @@ contract InterestRateStrategyWithVariableRateCap is IInterestRateStrategyWithVar
     }
 
     // Enforce the hard cap on the variable borrow rate
-    if (vars.currentVariableBorrowRate > MAX_VARIABLE_BORROW_RATE) {
+    if (
+      MAX_VARIABLE_BORROW_RATE != 0 && vars.currentVariableBorrowRate > MAX_VARIABLE_BORROW_RATE
+    ) {
       vars.currentVariableBorrowRate = MAX_VARIABLE_BORROW_RATE;
     }
 
